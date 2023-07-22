@@ -2,11 +2,9 @@
 
 namespace FW
 {
-
-    class MavlinkInterface
+    class SystemImpl
     {
 
     };
 
-}
-
+} // FW
