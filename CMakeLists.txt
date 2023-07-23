@@ -6,7 +6,7 @@ set(TEST_STATUS ON)
 
 add_subdirectory(src)
 
-target_include_directories(FW PRIVATE ${CMAKE_CURRENT_LIST_DIR}/external/c_library_v2)
+target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/c_library_v2)
 
 add_library(asio INTERFACE)
 target_include_directories(asio INTERFACE ${CMAKE_CURRENT_LIST_DIR}/external/asio/asio/include)
