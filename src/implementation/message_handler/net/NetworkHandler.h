@@ -15,26 +15,31 @@ namespace FW
         TCP
     };
 
+    struct Infrastructure
+    {
+        InfrastructureType type;
+        std::string target;
+        int port = -1;
+    };
+
 
     class NetworkHandler
     {
     public:
         NetworkHandler() : udp_socket(context), tcp_socket(context), serial_port(context) {};
 
-        bool Discover(const InfrastructureType& type, const std::string& host, const int& port = -1);
-        bool Connect();
+        void StartAsyncIO(const Infrastructure& infrastructure);
 
         void Disconnect();
         bool IsConnected();
 
-        void EnableAsyncIO();
-
         void Send(const mavlink_message_t& msg);
         TSQueue<mavlink_message_t>& Incoming();
     private:
+        void InitConnection(const Infrastructure& infrastructure);
         asio::io_context context;
         std::thread thread_for_context;
-        bool is_async_io_enabled = false;
+        bool is_context_running = false;
 
         asio::ip::udp::socket udp_socket;
         asio::ip::tcp::socket tcp_socket;

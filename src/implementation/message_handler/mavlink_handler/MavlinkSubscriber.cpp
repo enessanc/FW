@@ -2,7 +2,7 @@
 // Created by andalzo on 23.07.2023.
 //
 
-#include "MavlinkMessageHandler.h"
+#include "MavlinkSubscriber.h"
 
 namespace FW {
 } // FW
