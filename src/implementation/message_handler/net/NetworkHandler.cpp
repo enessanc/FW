@@ -91,7 +91,7 @@ namespace FW
         }
         reader_thread = std::thread([this](){generic_socket->ReaderThread();});
         writer_thread = std::thread([this](){generic_socket->WriterThread();});
-        std::this_thread::sleep_for(1000ms);
+        std::this_thread::sleep_for(1s);
     }
 #pragma clang diagnostic pop
 

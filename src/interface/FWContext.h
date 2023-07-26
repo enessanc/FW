@@ -9,8 +9,8 @@ namespace FW
     {
     public:
         FWContext() = default;
-
         std::shared_ptr<System> DiscoverSystem(const std::string& raw_end_point);
+        void Close();
     private:
         FWImpl _impl;
     };

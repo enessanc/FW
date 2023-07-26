@@ -6,18 +6,13 @@
 namespace FW
 {
 
-    typedef std::function<void(std::shared_ptr<System>)> SystemCallbackFunction;
-
     class FWImpl
     {
     public:
         FWImpl() = default;
-
         std::shared_ptr<System> DiscoverSystem(const std::string& raw_endpoint);
-        void DiscoverSystemAsync(const std::string& raw_endpoint, const SystemCallbackFunction& callback_func);
-        MessageHandler* GetMessageHandler();
+        void Close();
     private:
-        SystemCallbackFunction system_callback_function;
         MessageHandler message_handler;
     };
 }

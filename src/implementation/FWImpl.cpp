@@ -12,18 +12,14 @@ namespace FW
         {
             auto system = std::make_shared<System>(system_info.value());
             system->impl = this;
+            return system;
         }
         return nullptr;
     }
 
-    void FWImpl::DiscoverSystemAsync(const std::string &raw_endpoint, const SystemCallbackFunction& callback_func)
+    void FWImpl::Close()
     {
-        system_callback_function = callback_func;
-    }
-
-    MessageHandler *FWImpl::GetMessageHandler()
-    {
-        return &message_handler;
+        message_handler.Close();
     }
 
 }

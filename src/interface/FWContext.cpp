@@ -8,4 +8,9 @@ namespace FW
         return _impl.DiscoverSystem(raw_end_point);
     }
 
+    void FWContext::Close()
+    {
+        _impl.Close();
+    }
+
 } // FW

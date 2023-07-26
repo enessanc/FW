@@ -15,6 +15,7 @@ namespace FW
     public:
         MessageHandler();
         std::optional<SystemInfo> DiscoverSystemInfo(const std::string& raw_endpoint);
+        void Close();
     private:
         std::optional<Infrastructure> infrastructure{};
         NetworkHandler network_handler;
