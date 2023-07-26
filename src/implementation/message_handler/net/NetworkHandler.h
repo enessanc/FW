@@ -1,10 +1,8 @@
 #pragma once
-#include "asio.hpp"
-#include "Connection.h"
-#include "infrastructure/UDPConnection.h"
-#include "infrastructure/SerialConnection.h"
-#include "infrastructure/TSQueue.h"
+#include "GenericSocket.h"
+#include "infrastructure/UDPSocket.h"
 #include "utility/StringUtility.h"
+#include <optional>
 
 namespace FW
 {
@@ -22,31 +20,22 @@ namespace FW
         int port = -1;
     };
 
-
     class NetworkHandler
     {
     public:
-        NetworkHandler() : udp_socket(context), tcp_socket(context), serial_port(context) {};
-
-        void StartAsyncIO(const Infrastructure& infrastructure);
-
-        void Disconnect();
-        bool IsConnected();
-
+        NetworkHandler() = default;
+        void SetInfrastructure(const std::string& raw_endpoint);
+        void Start();
+        void Close();
         void Send(const mavlink_message_t& msg);
         TSQueue<mavlink_message_t>& Incoming();
+        [[nodiscard]] bool IsOpen() const;
     private:
-        void InitConnection(const Infrastructure& infrastructure);
-        asio::io_context context;
-        std::thread thread_for_context;
-        bool is_context_running = false;
-
-        asio::ip::udp::socket udp_socket;
-        asio::ip::tcp::socket tcp_socket;
-        asio::serial_port serial_port;
-
-        std::unique_ptr<Connection> connection = nullptr;
-        TSQueue<mavlink_message_t> in_messages;
+        void ParseRawEndpoint(const std::string& raw_endpoint);
+        std::optional<Infrastructure> infrastructure;
+        std::shared_ptr<GenericSocket> generic_socket = nullptr;
+        std::thread reader_thread;
+        std::thread writer_thread;
     };
 
 } // FW

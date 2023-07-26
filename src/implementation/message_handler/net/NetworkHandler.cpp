@@ -4,97 +4,138 @@
 namespace FW
 {
 
-    void NetworkHandler::Disconnect()
+    void NetworkHandler::SetInfrastructure(const std::string& raw_endpoint)
     {
-        if(connection->IsConnected())
-        {
-            connection->Disconnect();
-        }
-        else
-        {
-            std::cout << "[FW-LOG-ERROR]: To disconnect, you first need to connect to system." << std::endl;
-        }
-
-        context.stop();
-        if (thread_for_context.joinable())
-        {
-            thread_for_context.join();
-        }
-        Connection* pointer_to_delete = connection.release();
-        delete pointer_to_delete;
-        is_context_running  = false;
+        ParseRawEndpoint(raw_endpoint);
     }
 
-    bool NetworkHandler::IsConnected()
+    void NetworkHandler::ParseRawEndpoint(const std::string &raw_endpoint)
     {
-        if(connection)
+        this->infrastructure.reset();
+        std::vector<std::string> strings = StringUtility::custom_split(raw_endpoint, ':');
+        if(strings.size() == 3 || strings.size() == 2)
         {
-            return connection->IsConnected();
+            if(strings.at(0) == "serial" || strings.at(0) == "udp" || strings.at(0) == "tcp")
+            {
+                if(strings.at(0) == "serial")
+                {
+                    this->infrastructure->type = InfrastructureType::Serial;
+                    this->infrastructure->target = strings.at(1);
+                    this->infrastructure->port = -1;
+                    return;
+                }
+                if(strings.at(0) == "udp")
+                {
+                    Infrastructure inf;
+                    inf.type = InfrastructureType::UDP;
+                    inf.target = strings.at(1);
+                    inf.port = std::stoi(strings.at(2));
+                    infrastructure = inf;
+                    return;
+                }
+                if(strings.at(0) == "tcp")
+                {
+                    this->infrastructure->type = InfrastructureType::TCP;
+                    this->infrastructure->target = strings.at(1);
+                    this->infrastructure->port = std::stoi(strings.at(2));
+                    return;
+                }
+            }
         }
-        return false;
+        std::cout << "[FW-LOG-ERROR] : The provided end point string could not be parsed. " << std::endl;
+    }
+
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "bugprone-branch-clone"
+    void NetworkHandler::Start()
+    {
+        if(!infrastructure.has_value())
+        {
+            std::cout << "[FW-LOG-ERROR] : Must provide a end point string before starting network handler. " << std::endl;
+            return;
+        }
+        if(generic_socket != nullptr)
+        {
+            std::cout << "[FW-LOG-ERROR]: The generic socket in network handler already started." << std::endl;
+            return;
+        }
+
+        switch (this->infrastructure->type)
+        {
+            case UDP:
+            {
+                generic_socket = std::make_shared<UDPSocket>(this->infrastructure->target, this->infrastructure->port);
+                break;
+            }
+
+            case TCP:
+            {
+                // TODO: Implement TCP (on top of UDP it seems)
+                break;
+            }
+
+            case Serial:
+            {
+                // TODO: Implement Serial
+                break;
+            }
+            default:
+            {
+                std::cout << "[FW-LOG-ERROR]:The unknown infrastructure type! " << std::endl;
+            }
+        }
+
+        if(!generic_socket->Start())
+        {
+            std::cout << "[FW-LOG-ERROR]: The generic socket in network handler couldn't start." << std::endl;
+        }
+        reader_thread = std::thread([this](){generic_socket->ReaderThread();});
+        writer_thread = std::thread([this](){generic_socket->WriterThread();});
+        std::this_thread::sleep_for(1000ms);
+    }
+#pragma clang diagnostic pop
+
+    void NetworkHandler::Close()
+    {
+        if(generic_socket->IsOpen())
+        {
+            generic_socket->Close();
+            if(reader_thread.joinable())
+            {
+                reader_thread.join();
+            }
+            if(writer_thread.joinable())
+            {
+                writer_thread.join();
+            }
+        }
     }
 
     void NetworkHandler::Send(const mavlink_message_t &msg)
     {
-        if(connection)
+        if(generic_socket->IsOpen())
         {
-            connection->Send(msg);
-        }
-        else
-        {
-            std::cout << "[FW-LOG-ERROR]: To send a message, you first need to discover a system." << std::endl;
+            generic_socket->Send(msg);
         }
     }
 
     TSQueue<mavlink_message_t> &NetworkHandler::Incoming()
     {
-        return in_messages;
+        return generic_socket->Incoming();
     }
 
-    void NetworkHandler::StartAsyncIO(const Infrastructure &infrastructure)
+    bool NetworkHandler::IsOpen() const
     {
-        if(!is_context_running)
-        {
-            InitConnection(infrastructure);
-            connection->Connect();
-            thread_for_context = std::thread([this](){context.run();});
-            is_context_running = true;
-        }
+        return generic_socket->IsOpen();
     }
-
-    void NetworkHandler::InitConnection(const Infrastructure &infrastructure)
-    {
-        switch(infrastructure.type)
-        {
-            case Serial:
-                std::cout << "[FW-LOG-DEBUG]: Initializing serial connection for asio stuff in network handler." << std::endl;
-                return;
-            case UDP:
-                std::cout << "[FW-LOG-DEBUG]: Initializing UDP connection for asio stuff in network handler." << std::endl;
-                try
-                {
-                    asio::ip::udp::resolver resolver(context);
-                    asio::ip::udp::resolver::results_type end_points
-                    = resolver.resolve(infrastructure.target, std::to_string(infrastructure.port));
-
-                    connection = std::make_unique<UDPConnection>(
-                                    context,
-                                    udp_socket,
-                                    in_messages,
-                                    end_points
-                    );
-                }
-                catch (std::exception& e)
-                {
-                    std::cout << "[FW-LOG-ERROR]: " << e.what() << std::endl;
-                    return;
-                }
-                return;
-            case TCP:
-                std::cout << "[FW-LOG-DEBUG]: Initializing TCP connection for asio stuff in network handler." << std::endl;
-                return;
-        }
-    }
-
-
 } // FW
+
+
+
+
+
+
+
+
+
+

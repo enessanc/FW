@@ -2,9 +2,12 @@
 #include <deque>
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 
 namespace FW
 {
+    using namespace std::chrono_literals;
+
     template<typename T>
     class TSQueue
     {
@@ -64,7 +67,7 @@ namespace FW
         T pop_back()
         {
             std::scoped_lock lock(muxQueue);
-            auto t = std::move(deqQueue.back());
+            T t = std::move(deqQueue.back());
             deqQueue.pop_back();
             return t;
         }
@@ -72,7 +75,7 @@ namespace FW
         T pop_front()
         {
             std::scoped_lock lock(muxQueue);
-            auto t = std::move(deqQueue.front());
+            T t = std::move(deqQueue.front());
             deqQueue.pop_front();
             return t;
         }
@@ -85,6 +88,18 @@ namespace FW
                 cvBlocking.wait(ul);
                 //In windows, this works in problematic! But this is no problem here because we are keeping him in wait mode
             }
+        }
+
+        std::cv_status wait_for(const int& duration)
+        {
+            std::cv_status status = std::cv_status::no_timeout;
+            while (empty())
+            {
+                std::unique_lock<std::mutex> ul(muxBlocking);
+                status = cvBlocking.wait_for(ul,duration*1ms);
+                return status;
+            }
+            return status;
         }
 
 

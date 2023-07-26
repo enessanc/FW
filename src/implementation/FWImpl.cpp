@@ -19,21 +19,6 @@ namespace FW
     void FWImpl::DiscoverSystemAsync(const std::string &raw_endpoint, const SystemCallbackFunction& callback_func)
     {
         system_callback_function = callback_func;
-        message_handler.DiscoverSystemInfoAsync(raw_endpoint,
-                        [this](std::optional<SystemInfo> system_info)
-                        {
-                            if(system_info.has_value())
-                            {
-                                std::shared_ptr<System> system = std::make_shared<System>();
-                                system->impl = this;
-                                this->system_callback_function(system);
-                            }
-                            else
-                            {
-                                this->system_callback_function(nullptr);
-                            }
-                        }
-                        );
     }
 
     MessageHandler *FWImpl::GetMessageHandler()
