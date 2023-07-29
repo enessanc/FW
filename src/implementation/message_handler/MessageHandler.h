@@ -2,8 +2,8 @@
 #include <functional>
 #include "SystemInfo.h"
 #include "net/NetworkHandler.h"
-#include "mavlink_handler/MavlinkSubscriber.h"
-#include "mavlink_handler/MavlinkCommander.h"
+#include "message_handler/mavlink_handler/mavlink_subscriber/MavlinkSubscriber.h"
+#include "message_handler/mavlink_handler/mavlink_commander/MavlinkCommander.h"
 
 namespace FW
 {
