@@ -17,11 +17,14 @@ namespace FW
         void Send(const mavlink_message_t& msg);
         bool IsOpen() const;
         TSQueue<mavlink_message_t>& Incoming();
+        TSQueue<mavlink_message_t>& IncomingAck();
         virtual ~GenericSocket() = default;
         virtual void WriterThread() = 0;
         virtual void ReaderThread() = 0;
     protected:
+        void AddToIncomingQueue(const mavlink_message_t& msg);
 
+        TSQueue<mavlink_message_t> ack_queue;
         TSQueue<mavlink_message_t> out_queue;
         TSQueue<mavlink_message_t> incoming_queue;
         std::atomic<bool> is_open = false;

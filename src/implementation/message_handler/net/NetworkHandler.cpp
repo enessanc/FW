@@ -4,12 +4,13 @@
 namespace FW
 {
 
-    void NetworkHandler::SetInfrastructure(const std::string& raw_endpoint)
+    void NetworkHandler::SetInfrastructure(const std::string& re)
     {
-        ParseRawEndpoint(raw_endpoint);
+        this->raw_endpoint = re;
+        ParseRawEndpoint();
     }
 
-    void NetworkHandler::ParseRawEndpoint(const std::string &raw_endpoint)
+    void NetworkHandler::ParseRawEndpoint()
     {
         this->infrastructure.reset();
         std::vector<std::string> strings = StringUtility::custom_split(raw_endpoint, ':');
@@ -127,6 +128,11 @@ namespace FW
     bool NetworkHandler::IsOpen() const
     {
         return generic_socket->IsOpen();
+    }
+
+    std::string NetworkHandler::GetEndPoint() const
+    {
+        return raw_endpoint;
     }
 } // FW
 

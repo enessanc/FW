@@ -32,7 +32,7 @@ namespace FW
 
         // Related to debug
         mavlink_status_t last_status{};
-        bool debug = true;
+        bool debug = false;
 
         //Related to socket stuff
         int udp_socket{};

@@ -8,16 +8,20 @@
 namespace FW
 {
     class FWImpl;
-    typedef std::function<void(std::optional<SystemInfo>)> SystemInfoCallbackFunction;
+    typedef std::function<void(std::shared_ptr<SystemInfo>)> SystemInfoCallbackFunction;
 
     class MessageHandler
     {
     public:
-        MessageHandler();
-        std::optional<SystemInfo> DiscoverSystemInfo(const std::string& raw_endpoint);
+        MessageHandler() = default;
+        void Start(const std::string& raw_endpoint);
+        std::shared_ptr<SystemInfo> DiscoverSystemInfo();
+
         void Close();
     private:
-        std::optional<Infrastructure> infrastructure{};
+        void DiscoverSystemInfoCallback(std::promise<SystemInfo>& system_info_promise);
+
+    private:
         NetworkHandler network_handler;
         MavlinkSubscriber subscriber{};
         MavlinkCommander commander{};

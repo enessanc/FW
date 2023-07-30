@@ -22,4 +22,22 @@ namespace FW
     {
         return incoming_queue;
     }
+
+    TSQueue<mavlink_message_t> &GenericSocket::IncomingAck()
+    {
+        return ack_queue;
+    }
+
+    void GenericSocket::AddToIncomingQueue(const mavlink_message_t &msg)
+    {
+        if(msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK)
+        {
+            ack_queue.push_back(msg);
+        }
+        else
+        {
+            incoming_queue.push_back(msg);
+        }
+    }
+
 }

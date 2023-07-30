@@ -7,6 +7,7 @@ set(TEST_STATUS ON)
 add_subdirectory(src)
 
 target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/c_library_v2)
+target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/hashMap/inc)
 
 if(TEST_STATUS)
     enable_testing()

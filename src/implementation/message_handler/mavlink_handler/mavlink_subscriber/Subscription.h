@@ -1,16 +1,14 @@
-//
-// Created by andalzo on 29.07.2023.
-//
+#pragma once
+#include "message_handler/mavlink_handler/TimeoutDetector.h"
 
-#ifndef FW_SUBSCRIPTION_H
-#define FW_SUBSCRIPTION_H
+namespace FW
+{
 
-namespace FW {
-
-    class Subscription {
+    class Subscription
+    {
 
     };
 
 } // FW
 
-#endif //FW_SUBSCRIPTION_H
+

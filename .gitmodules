@@ -1,3 +1,6 @@
 [submodule "external/c_library_v2"]
 	path = external/c_library_v2
 	url = https://github.com/mavlink/c_library_v2
+[submodule "external/hashMap"]
+	path = external/hashMap
+	url = https://github.com/kshk123/hashMap

@@ -129,7 +129,7 @@ namespace FW
 
             if(msgReceived)
             {
-                incoming_queue.push_back(temp_message);
+                AddToIncomingQueue(temp_message);
                 if(debug)
                 {
                     // Report info

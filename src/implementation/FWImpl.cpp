@@ -7,10 +7,11 @@ namespace FW
 
     std::shared_ptr<System> FWImpl::DiscoverSystem(const std::string& raw_endpoint)
     {
-        std::optional<SystemInfo> system_info = message_handler.DiscoverSystemInfo(raw_endpoint);
-        if(system_info.has_value())
+        message_handler.Start(raw_endpoint);
+        std::shared_ptr<SystemInfo> system_info = message_handler.DiscoverSystemInfo();
+        if(system_info)
         {
-            auto system = std::make_shared<System>(system_info.value());
+            auto system = std::make_shared<System>(*system_info);
             system->impl = this;
             return system;
         }

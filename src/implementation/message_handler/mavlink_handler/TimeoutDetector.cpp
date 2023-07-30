@@ -1,6 +1,7 @@
 #include "TimeoutDetector.h"
 
-namespace FW {
+namespace FW
+{
     void TimeoutDetector::SetTimeoutPromise(std::promise<void> *promise)
     {
         timeout_promise = promise;
@@ -21,7 +22,7 @@ namespace FW {
     void TimeoutDetector::Reset(const TimeoutDetector::RefreshThread &type)
     {
         reset_promise.set_value();
-        RefreshFutureAndPromises(RefreshThread::Out);
+        RefreshFutureAndPromises(type);
     }
 
     void TimeoutDetector::Finish()

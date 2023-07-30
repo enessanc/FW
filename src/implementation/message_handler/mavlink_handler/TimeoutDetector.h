@@ -24,7 +24,7 @@ namespace FW
         void Reset(const RefreshThread& type = RefreshThread::Out);
         void Finish();
     private:
-        void RefreshFutureAndPromises(const RefreshThread& type = RefreshThread::Out);
+        void RefreshFutureAndPromises(const RefreshThread& type);
         void HandleTimeoutDetector();
 
         std::thread timeout_detector_thread;
