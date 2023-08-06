@@ -12,7 +12,6 @@ add_library(FW
         implementation/message_handler/mavlink_handler/mavlink_subscriber/MavlinkSubscriber.cpp
         implementation/message_handler/mavlink_handler/mavlink_commander/MavlinkCommander.cpp
         implementation/message_handler/MessageHandler.cpp implementation/message_handler/net/GenericSocket.cpp
-        implementation/message_handler/mavlink_handler/mavlink_commander/Command.cpp
         implementation/message_handler/mavlink_handler/mavlink_subscriber/Subscription.cpp
         implementation/message_handler/mavlink_handler/TimeoutDetector.cpp)
 
