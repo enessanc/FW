@@ -90,13 +90,13 @@ namespace FW
             }
         }
 
-        std::cv_status wait_for(const int& duration)
+        std::cv_status wait_for(const std::chrono::nanoseconds& duration)
         {
             std::cv_status status = std::cv_status::no_timeout;
             while (empty())
             {
                 std::unique_lock<std::mutex> ul(muxBlocking);
-                status = cvBlocking.wait_for(ul,duration*1ms);
+                status = cvBlocking.wait_for(ul,duration);
                 return status;
             }
             return status;

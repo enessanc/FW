@@ -135,6 +135,11 @@ namespace FW
         return raw_endpoint;
     }
 
+    TSQueue<mavlink_message_t> &NetworkHandler::IncomingACK()
+    {
+        return generic_socket->IncomingAck();
+    }
+
 } // FW
 
 

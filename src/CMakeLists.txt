@@ -2,7 +2,6 @@ add_library(FW
         STATIC
         #Interface Files
         interface/FWContext.cpp
-        implementation/System.cpp
         #Implementation Files
         implementation/FWImpl.cpp
         implementation/message_handler/net/NetworkHandler.cpp
@@ -13,7 +12,9 @@ add_library(FW
         implementation/message_handler/mavlink_handler/mavlink_commander/MavlinkCommander.cpp
         implementation/message_handler/MessageHandler.cpp implementation/message_handler/net/GenericSocket.cpp
         implementation/message_handler/mavlink_handler/mavlink_subscriber/Subscription.cpp
-        implementation/message_handler/mavlink_handler/TimeoutDetector.cpp)
+        implementation/message_handler/mavlink_handler/TimeoutDetector.cpp
+        implementation/System.h
+)
 
 target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/interface)
 target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/implementation)

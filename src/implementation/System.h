@@ -1,22 +1,15 @@
 #pragma once
-#include "SystemInfo.h"
+#include "common/mavlink.h"
+#include <chrono>
 
 namespace FW
 {
-
-    class FWImpl;
-
-    class System
+    struct System
     {
-    public:
-        friend class FWImpl;
-        System() = default;
-        explicit System(const SystemInfo& info) : system_info(info) {}
-        [[nodiscard]] SystemInfo GetInfo() const;
-    private:
-        SystemInfo system_info{};
-        FWImpl *impl = nullptr;
+        int system_id;
+        int component_id;
+        MAV_TYPE vehicle_id;
+        MAV_AUTOPILOT autopilot_id;
+        std::chrono::nanoseconds initial_sample_rtt;
     };
-
-} // FW
-
+}

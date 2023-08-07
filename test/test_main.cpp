@@ -68,10 +68,26 @@ TEST(FWMessageHandler, FWDiscoverSystemOnce)
     ASSERT_NE(system,nullptr) << "Autopilot did not found, please check its existence.";
 
     std::cout << "Autopilot found with following specs: " << std::endl;
-    std::cout << "[System ID]:" << system->GetInfo().system_id << std::endl;
-    std::cout << "[Autopilot Type]:" << system->GetInfo().autopilot_type<< std::endl;
-    std::cout << "[Companion Computer ID]:" << system->GetInfo().companion_computer_id << std::endl;
-    std::cout << "[Vehicle Type]:" << system->GetInfo().vehicle_type << std::endl;
+    std::cout << "[SystemImpl ID]:" << system->system_id << std::endl;
+    std::cout << "[Autopilot Type]:" << system->autopilot_id<< std::endl;
+    std::cout << "[Companion Computer ID]:" << system->component_id << std::endl;
+    std::cout << "[Vehicle Type]:" << system->vehicle_id << std::endl;
+    context.Close();
+}
+
+TEST(FWMessageHandler, FWConnect)
+{
+    FWContext context;
+    std::shared_ptr<System> system = context.DiscoverSystem("udp:127.0.0.1:14540");
+    ASSERT_NE(system,nullptr) << "Autopilot did not found, please check its existence.";
+    std::cout << "Autopilot found with following specs: " << std::endl;
+    std::cout << "[SystemImpl ID]:" << system->system_id << std::endl;
+    std::cout << "[Autopilot Type]:" << system->autopilot_id<< std::endl;
+    std::cout << "[Companion Computer ID]:" << system->component_id << std::endl;
+    std::cout << "[Vehicle Type]:" << system->vehicle_id << std::endl;
+
+    ASSERT_EQ(context.Connect(system), true) << "The connection to system was unsuccessful.";
+    std::cout << "The connection to system was succesfull." << std::endl;
     context.Close();
 }
 

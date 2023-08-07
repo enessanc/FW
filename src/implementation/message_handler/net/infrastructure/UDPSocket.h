@@ -5,10 +5,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <mutex>
 
 namespace FW
 {
-    static const int TRIGGER_WAIT_DURATION = 10000;
+    constexpr std::chrono::milliseconds TRIGGER_WAIT_DURATION = 1000ms;
     class UDPSocket : public GenericSocket
     {
     public:
@@ -26,6 +27,8 @@ namespace FW
 
     private:
         //Related to targets
+        std::mutex mut;
+
         int rx_port{};
         std::string target_ipv4;
         int tx_port = -1;

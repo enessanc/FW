@@ -36,7 +36,10 @@ namespace FW
         }
         else
         {
-            incoming_queue.push_back(msg);
+            if(msg.msgid == MAVLINK_MSG_ID_SYSTEM_TIME || msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+            {
+                incoming_queue.push_back(msg);
+            }
         }
     }
 

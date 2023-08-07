@@ -13,4 +13,9 @@ namespace FW
         _impl.Close();
     }
 
+    bool FWContext::Connect(const std::shared_ptr<System> &system)
+    {
+        return _impl.Connect(system);
+    }
+
 } // FW

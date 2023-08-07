@@ -54,8 +54,9 @@ namespace FW
     {
         do
         {
-            if(out_queue.wait_for(TRIGGER_WAIT_DURATION) != std::cv_status::timeout)
+            if(out_queue.wait_for(10000ms) != std::cv_status::timeout)
             {
+                //TODO: There is a bug related to writing a message to socket. FIX IT!!!!
                 while(!out_queue.empty())
                 {
                     mavlink_message_t message = out_queue.front();
@@ -65,10 +66,11 @@ namespace FW
                     if(bytes_written < 0)
                     {
                         std::cout << "[FW-LOG-ERROR]: Could not write the message res = "
-                        << bytes_written << "errno = " << errno << std::endl;
+                        << bytes_written << " errno = " << errno << std::endl;
                         std::cout << "[FW-LOG-INFO]: Because of error during writing the port, the writer thread of udp"
                                      "socket will shut itself down. This can be effect program crash eventually. " << std::endl;
                         is_open = false;
+                        break;
                     }
                 }
             }
@@ -80,13 +82,14 @@ namespace FW
         int bytes_written = 0;
         if(tx_port > 0)
         {
-            sockaddr_in addr{};
+            struct sockaddr_in addr{};
             memset(&addr, 0, sizeof(addr));
             addr.sin_family = AF_INET;
             addr.sin_addr.s_addr = inet_addr(target_ipv4.c_str());
             addr.sin_port = htons(tx_port);
-            bytes_written = sendto(udp_socket, buffer, length, 0, (sockaddr*)&addr,  sizeof(sockaddr_in));
-        } else
+            bytes_written = sendto(udp_socket, buffer, length, 0, (struct sockaddr*)&addr,  sizeof(struct sockaddr_in));
+        }
+        else
         {
             std::cout << "[FW-LOG-ERROR]:Sending before first packet received in udp socket! Must discover the system first!" << std::endl;
             bytes_written = -1;
@@ -168,6 +171,7 @@ namespace FW
 
     int UDPSocket::_read_port(uint8_t& cp)
     {
+
         int result = -1;
         if(buff_ptr < buff_len)
         {

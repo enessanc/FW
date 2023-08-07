@@ -29,6 +29,7 @@ namespace FW
         void Close();
         void Send(const mavlink_message_t& msg);
         TSQueue<mavlink_message_t>& Incoming();
+        TSQueue<mavlink_message_t>& IncomingACK();
         [[nodiscard]] bool IsOpen() const;
         [[nodiscard]] std::string GetEndPoint() const;
     private:
