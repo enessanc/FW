@@ -86,7 +86,7 @@ namespace FW
             {
                 std::unique_lock<std::mutex> ul(muxBlocking);
                 cvBlocking.wait(ul);
-                //In windows, this works in problematic! But this is no problem here because we are keeping him in wait mode
+                //In windows, this works problematic! But this is no problem here because we are keeping him in wait mode.
             }
         }
 

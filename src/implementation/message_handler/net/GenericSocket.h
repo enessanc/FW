@@ -27,7 +27,8 @@ namespace FW
         TSQueue<mavlink_message_t> ack_queue;
         TSQueue<mavlink_message_t> out_queue;
         TSQueue<mavlink_message_t> incoming_queue;
-        std::atomic<bool> is_open = false;
+        std::atomic<bool> should_reader_thread_run = false;
+		std::atomic<bool> should_writer_thread_run = false;
     };
 } // FW
 

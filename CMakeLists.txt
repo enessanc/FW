@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.5)
 project(FW LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -10,7 +10,16 @@ target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/c_librar
 target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/external/hashMap/inc)
 
 if(TEST_STATUS)
-    enable_testing()
-    message("Tests for FW is starting.")
-    add_subdirectory(test)
+
+    if(LINUX)
+        enable_testing()
+        message("Tests for FW is starting in linux environment.")
+        add_subdirectory(test_linux)
+    endif()
+
+    if(WIN32)
+        message("Tests for FW is starting in windows environment.")
+        add_subdirectory(test_windows)
+    endif()
+
 endif()

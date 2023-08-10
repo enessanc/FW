@@ -3,6 +3,7 @@
 
 namespace FW
 {
+    // The main handler of FW library uses bridge pattern to encapsulate implementation of FW.
     class FWContext
     {
     public:

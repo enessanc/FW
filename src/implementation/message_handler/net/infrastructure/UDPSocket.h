@@ -1,15 +1,26 @@
 #pragma once
 #include <utility>
 #include "../GenericSocket.h"
+#include <mutex>
+
+
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <WS2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <mutex>
+#endif
+
 
 namespace FW
 {
     constexpr std::chrono::milliseconds TRIGGER_WAIT_DURATION = 1000ms;
+	constexpr std::chrono::milliseconds READER_THREAD_INTERVAL = 10ms;
+
     class UDPSocket : public GenericSocket
     {
     public:
@@ -24,6 +35,7 @@ namespace FW
     private:
         int _write_port(uint8_t *buffer, uint32_t len);
         int _read_port(uint8_t& cp);
+        int close_socket();
 
     private:
         //Related to targets

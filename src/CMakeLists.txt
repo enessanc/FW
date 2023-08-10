@@ -16,5 +16,12 @@ add_library(FW
         implementation/System.h
 )
 
+
+if(WIN32)
+    message("Detected WIndowsSDK. So target linked with wsock32 and ws2_32")
+    target_link_libraries(FW PUBLIC wsock32 ws2_32)
+endif()
+
+
 target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/interface)
 target_include_directories(FW PUBLIC ${CMAKE_CURRENT_LIST_DIR}/implementation)

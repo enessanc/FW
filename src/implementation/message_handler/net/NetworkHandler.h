@@ -20,6 +20,7 @@ namespace FW
         int port = -1;
     };
 
+    // Network handler is a facade to socket level communication for library. It detects and creates the socket by given value.
     class NetworkHandler
     {
     public:

@@ -7,6 +7,7 @@ namespace FW
 {
     class SerialSocket
     {
+
     };
 
 } // FW

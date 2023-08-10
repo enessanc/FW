@@ -6,7 +6,8 @@
 
 namespace FW
 {
-
+    // The handler of messaging logic. It encapsulates the mavlink heartbeat-ping-commander-subscriber(FW defined) protocols. 
+    // It governs all aspects of communications' so it is a singleton..
     class MessageHandler
     {
     public:

@@ -170,7 +170,7 @@ namespace FW
             {
                 std::cout << "[FW]:[LOG-ERROR]: mavlink commander unexpected command type while encoding command"
                              ", returning invalid msg, that may cause undefined problems" << std::endl;
-                mavlink_message_t msg;
+                mavlink_message_t msg{};
                 return msg;
             }
         }
@@ -180,7 +180,7 @@ namespace FW
     {
         while (!network_handler->IncomingACK().empty())
         {
-            mavlink_message_t msg = network_handler->IncomingACK().front();
+            mavlink_message_t msg = network_handler->IncomingACK().pop_front();
             mavlink_command_ack_t ack;
             mavlink_msg_command_ack_decode(&msg, &ack);
             for (auto& command: sender_window)
@@ -258,7 +258,8 @@ namespace FW
             }
         }
 
-        sender_window_size = std::min(sender_window_size,MAXIMUM_SENDER_WINDOW);
+
+        sender_window_size = std::min(sender_window_size, MAXIMUM_SENDER_WINDOW);
     }
 
     void MavlinkCommander::HandleSenderWindow()

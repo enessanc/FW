@@ -5,7 +5,7 @@ namespace FW
 
     void GenericSocket::Send(const mavlink_message_t &msg)
     {
-        if(is_open)
+        if(IsOpen())
         {
             out_queue.push_back(msg);
             return;
@@ -15,7 +15,7 @@ namespace FW
 
     bool GenericSocket::IsOpen() const
     {
-        return is_open;
+		return (should_reader_thread_run && should_writer_thread_run);
     }
 
     TSQueue<mavlink_message_t> &GenericSocket::Incoming()
@@ -36,6 +36,7 @@ namespace FW
         }
         else
         {
+            //TODO : The coming mssages should be filtered by a subscription protocol.
             if(msg.msgid == MAVLINK_MSG_ID_SYSTEM_TIME || msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
             {
                 incoming_queue.push_back(msg);

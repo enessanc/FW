@@ -50,8 +50,12 @@ namespace FW
         std::promise<std::shared_ptr<System>> system_promise;
         std::future<std::shared_ptr<System>> system_future = system_promise.get_future();
         std::thread listening_thread([this, &system_promise](){DiscoverSystemInfoCallback(system_promise);});
-        if(system_future.wait_for(2500ms) == std::future_status::timeout)
+        if(system_future.wait_for(8s) == std::future_status::timeout)
         {
+            if (listening_thread.joinable())
+            {
+                listening_thread.join();
+            }
             return nullptr;
         }
         if(listening_thread.joinable())
@@ -64,27 +68,32 @@ namespace FW
 
     void MessageHandler::DiscoverSystemInfoCallback(std::promise<std::shared_ptr<System>>& system_info_promise)
     {
-        while (network_handler.Incoming().wait_for(2000ms) != std::cv_status::timeout)
+        if (network_handler.Incoming().wait_for(6s) != std::cv_status::timeout)
         {
-            mavlink_message_t msg = network_handler.Incoming().pop_front();
-            if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+            while (!network_handler.Incoming().empty())
             {
-                std::shared_ptr<System> system = std::make_shared<System>();
-                system->system_id = msg.sysid;
-                system->component_id = msg.compid;
-                mavlink_heartbeat_t heartbeat_msg;
-                mavlink_msg_heartbeat_decode(&msg, &heartbeat_msg);
-                system->autopilot_id = static_cast<MAV_AUTOPILOT>(heartbeat_msg.autopilot);
-                system->vehicle_id = static_cast<MAV_TYPE>(heartbeat_msg.type);
-                system_info_promise.set_value(system);
-                break;
+                mavlink_message_t msg = network_handler.Incoming().pop_front();
+                if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                {
+                    std::shared_ptr<System> system = std::make_shared<System>();
+                    system->system_id = msg.sysid;
+                    system->component_id = msg.compid;
+                    mavlink_heartbeat_t heartbeat_msg;
+                    mavlink_msg_heartbeat_decode(&msg, &heartbeat_msg);
+                    system->autopilot_id = static_cast<MAV_AUTOPILOT>(heartbeat_msg.autopilot);
+                    system->vehicle_id = static_cast<MAV_TYPE>(heartbeat_msg.type);
+                    system_info_promise.set_value(system);
+                }
             }
+            
         }
     }
 
+    //Mavlink connecting is simply requesting specific message (default SYSTEM_TIME) to measure the rtt for commad protocol and check if two way connection can be established.
     bool MessageHandler::Connect(const std::shared_ptr<System>& system)
     {
-        mavlink_command_long_t msg_request_command;
+
+        mavlink_command_long_t msg_request_command{};
 
         msg_request_command.command = 512;
         msg_request_command.param1 = MAVLINK_MSG_ID_SYSTEM_TIME;
@@ -92,11 +101,11 @@ namespace FW
         mavlink_msg_command_long_encode(system->system_id, system->component_id,&msg_s, &msg_request_command);
         network_handler.Send(msg_s);
         auto start = std::chrono::system_clock::now();
-        if(network_handler.Incoming().wait_for(4000ms) != std::cv_status::timeout)
+        if(network_handler.Incoming().wait_for(5s) != std::cv_status::timeout)
         {
             if(!network_handler.Incoming().empty())
             {
-                mavlink_message_t msg = network_handler.Incoming().front();
+                mavlink_message_t msg = network_handler.Incoming().pop_front();
                 if(msg.msgid == MAVLINK_MSG_ID_SYSTEM_TIME)
                 {
                     auto finish = std::chrono::system_clock::now();
@@ -104,10 +113,8 @@ namespace FW
                     mavlink_system_time_t system_time;
                     mavlink_msg_system_time_decode(&msg, &system_time);
                     std::cout << "[FW][LOG-DEBUG]: System is connected. " << std::endl;
-                    std::cout << "[FW][LOG-INFO]: System Timestamp (UNIX epoch Time)(us): "
-                              << system_time.time_unix_usec << std::endl;
-                    std::cout << "[FW][LOG-INFO]: System Timestamp (Time Since Boot)(ms): "
-                              << system_time.time_boot_ms << std::endl;
+                    std::cout << "[FW][LOG-INFO]: System Timestamp (UNIX epoch Time)(us): " << system_time.time_unix_usec << std::endl;
+                    std::cout << "[FW][LOG-INFO]: System Timestamp (Time Since Boot)(ms): " << system_time.time_boot_ms << std::endl;
                     if (!network_handler.IncomingACK().empty())
                     {
                         std::cout << "[FW][LOG-TRACE]: The command ack messages are deleted to ensure clarity. "

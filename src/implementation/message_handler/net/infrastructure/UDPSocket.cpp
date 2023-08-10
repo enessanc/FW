@@ -5,6 +5,19 @@ namespace FW
 
     bool UDPSocket::Start()
     {
+#ifdef _WIN32
+
+
+        WSAData wsa_data;
+        int res = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+        if (res != 0)
+        {
+            std::cout << "[FW-LOG-ERROR]: WSAStartup failed: " << res << std::endl;
+            return false;
+        }
+
+#endif
+
         //Creating udp datagram socket
         udp_socket = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
         if(udp_socket < 0)
@@ -14,7 +27,7 @@ namespace FW
         }
 
         sockaddr_in socket_address{};
-        memset(&socket_address,0, sizeof(socket_address));
+        memset(&socket_address, 0, sizeof(socket_address));
         socket_address.sin_family = AF_INET;
         socket_address.sin_addr.s_addr = inet_addr(target_ipv4.c_str());
         socket_address.sin_port = htons(rx_port);
@@ -22,7 +35,11 @@ namespace FW
         if(bind(udp_socket, (struct sockaddr*)(&socket_address), sizeof(struct sockaddr)))
         {
             std::cout << "[FW-LOG-ERROR]: The udp socket could not be bound into name. " << std::endl;
-            close(udp_socket);
+            int close_result = close_socket();
+            if (close_result)
+            {
+                std::cout << "[FW-LOG-ERROR]: Error on port close. The error number: " << close_result << std::endl;
+            }
             udp_socket = -1;
             return false;
         }
@@ -30,36 +47,36 @@ namespace FW
         std::cout << "[FW-LOG-DEBUG]: Listening to " << target_ipv4 << ":" << rx_port << std::endl;
         last_status.packet_rx_drop_count = 0;
 
-        is_open = true;
+        should_reader_thread_run = true;
+		should_writer_thread_run = true;
 
-        return true;
+        return IsOpen();
     }
 
     void UDPSocket::Close()
     {
-        if(is_open)
+        std::cout << "[FW-LOG-DEBUG]: Closing the UDP socket and finishes its associated threads."<< std::endl;
+        int close_result = close_socket();
+        if(close_result)
         {
-            std::cout << "[FW-LOG-DEBUG]: Closing the UDP socket and finishes its associated threads."<< std::endl;
-            int result = close(udp_socket);
-            udp_socket = -1;
-            if(result)
-            {
-                std::cout << "[FW-LOG-WARNING]: Error on port close. The error number: "<< result << std::endl;
-            }
-            is_open = false;
+           std::cout << "[FW-LOG-ERROR]: Error on port close. The error number: "<< close_result << std::endl;
         }
+        should_reader_thread_run = false;
+        should_writer_thread_run = false;
+        
     }
 
     void UDPSocket::WriterThread()
     {
         do
         {
-            if(out_queue.wait_for(10000ms) != std::cv_status::timeout)
+            while(out_queue.wait_for(1s) != std::cv_status::timeout)
             {
                 //TODO: There is a bug related to writing a message to socket. FIX IT!!!!
-                while(!out_queue.empty())
+                if(!out_queue.empty())
                 {
-                    mavlink_message_t message = out_queue.front();
+                    mavlink_message_t message = out_queue.pop_front();
+                    std::cout << "[]FW-LOG-INFO]: The sended message id " << message.msgid << std::endl;
                     uint8_t buffer_for_write[BUFFER_SIZE];
                     uint32_t length = mavlink_msg_to_send_buffer(buffer_for_write,&message);
                     int bytes_written = _write_port(buffer_for_write,length);
@@ -68,17 +85,24 @@ namespace FW
                         std::cout << "[FW-LOG-ERROR]: Could not write the message res = "
                         << bytes_written << " errno = " << errno << std::endl;
                         std::cout << "[FW-LOG-INFO]: Because of error during writing the port, the writer thread of udp"
-                                     "socket will shut itself down. This can be effect program crash eventually. " << std::endl;
-                        is_open = false;
+                                     "socket will shut itself down. This can make program crash eventually. " << std::endl;
+						should_writer_thread_run = false;
                         break;
                     }
                 }
             }
-        } while (is_open);
+        } while (should_writer_thread_run);
     }
 
     int UDPSocket::_write_port(uint8_t *buffer, uint32_t length)
     {
+		std::scoped_lock lock(mut);
+
+        if (!IsOpen())
+        {
+            return 0;
+        }
+
         int bytes_written = 0;
         if(tx_port > 0)
         {
@@ -87,11 +111,11 @@ namespace FW
             addr.sin_family = AF_INET;
             addr.sin_addr.s_addr = inet_addr(target_ipv4.c_str());
             addr.sin_port = htons(tx_port);
-            bytes_written = sendto(udp_socket, buffer, length, 0, (struct sockaddr*)&addr,  sizeof(struct sockaddr_in));
+            bytes_written = sendto(udp_socket, (const char*)buffer, length, 0, (struct sockaddr*)&addr,  sizeof(struct sockaddr_in));
         }
         else
         {
-            std::cout << "[FW-LOG-ERROR]:Sending before first packet received in udp socket! Must discover the system first!" << std::endl;
+            std::cout << "[FW-LOG-ERROR]: Sending before first packet received in udp socket! Must discover the system first!" << std::endl;
             bytes_written = -1;
         }
         return bytes_written;
@@ -118,8 +142,8 @@ namespace FW
                 if ( (last_status.packet_rx_drop_count != status.packet_rx_drop_count) && debug )
                 {
                     std::cout << "[FW-LOG-DEBUG]: Dropped " << status.packet_rx_drop_count << " Packets " << std::endl;
-                    uint8_t v=cp;
-                    std::cout << "[FW-LOG-DEBUG][Dropout-Error]: " << v << std::endl;
+                    uint8_t v= cp;
+                    std::cout << "[FW-LOG-ERROR][Dropout-Error]: " << v << std::endl;
                 }
                 last_status = status;
             }
@@ -151,9 +175,9 @@ namespace FW
                     {
                         std::cout << "[LOG-ERROR][FATAL-ERROR]: MESSAGE LENGTH IS LARGER THAN BUFFER SIZE"  <<
                         " Action: Ending the socket thread. That may cause crash eventually." << std::endl;
-                        is_open = false;
+						should_reader_thread_run = false;
                     }
-                        // print out the buffer
+                    // print out the buffer
                     else
                     {
                         for (i=0; i<message_length; i++)
@@ -165,12 +189,15 @@ namespace FW
                     }
                 }
             }
+            //reader thread should sleep to give time for writer thread (?)
+			std::this_thread::sleep_for(READER_THREAD_INTERVAL);
 
-        } while (is_open);
+        } while (should_reader_thread_run);
     }
 
     int UDPSocket::_read_port(uint8_t& cp)
     {
+		std::scoped_lock lock(mut);
 
         int result = -1;
         if(buff_ptr < buff_len)
@@ -182,15 +209,17 @@ namespace FW
         else
         {
             sockaddr_in addr{};
-            socklen_t len = sizeof(struct sockaddr_in);
-            result = recvfrom(udp_socket, &receiver_buffer, BUFFER_SIZE, 0, (struct sockaddr *)&addr, &len);
+            socklen_t len = sizeof(sockaddr_in);
+            result = recvfrom(udp_socket, (char*)&receiver_buffer, BUFFER_SIZE, 0, (sockaddr*)&addr, &len);
             if(tx_port < 0)
             {
                 if(strcmp(inet_ntoa(addr.sin_addr), target_ipv4.c_str()) == 0)
                 {
                     tx_port = ntohs(addr.sin_port);
                     std::cout << "[FW-LOG-DEBUG]: Got first packet, sending to " << target_ipv4 << ":" << rx_port << std::endl;
-                }else
+					std::cout << "[FW-LOG-DEBUG]: UDP Socket TX Port Set To: " << tx_port << std::endl;
+                }
+				else
                 {
                     std::cout << "[FW-LOG-ERROR]: Got packet from " << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port)
                     << " but listening on " << target_ipv4 << std::endl;
@@ -206,6 +235,14 @@ namespace FW
         }
         return result;
 
+    }
+    int UDPSocket::close_socket()
+    {
+    #ifdef _WIN32
+            return closesocket(udp_socket);
+    #else
+            return close(udp_socket);
+    #endif
     }
 }
 
