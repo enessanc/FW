@@ -1,5 +1,4 @@
 #include "MavlinkCommander.h"
-
 #include <utility>
 
 namespace FW

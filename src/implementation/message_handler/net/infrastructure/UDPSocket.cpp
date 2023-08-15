@@ -6,8 +6,6 @@ namespace FW
     bool UDPSocket::Start()
     {
 #ifdef _WIN32
-
-
         WSAData wsa_data;
         int res = WSAStartup(MAKEWORD(2, 2), &wsa_data);
         if (res != 0)
@@ -15,7 +13,6 @@ namespace FW
             std::cout << "[FW-LOG-ERROR]: WSAStartup failed: " << res << std::endl;
             return false;
         }
-
 #endif
 
         //Creating udp datagram socket
@@ -44,6 +41,7 @@ namespace FW
             return false;
         }
 
+
         std::cout << "[FW-LOG-DEBUG]: Listening to " << target_ipv4 << ":" << rx_port << std::endl;
         last_status.packet_rx_drop_count = 0;
 
@@ -57,6 +55,8 @@ namespace FW
     {
         std::cout << "[FW-LOG-DEBUG]: Closing the UDP socket and finishes its associated threads."<< std::endl;
         int close_result = close_socket();
+        udp_socket = -1;
+        //tx_port = -1;
         if(close_result)
         {
            std::cout << "[FW-LOG-ERROR]: Error on port close. The error number: "<< close_result << std::endl;
@@ -70,13 +70,12 @@ namespace FW
     {
         do
         {
-            while(out_queue.wait_for(1s) != std::cv_status::timeout)
+            if(out_queue.wait_for(1s) != std::cv_status::timeout)
             {
                 //TODO: There is a bug related to writing a message to socket. FIX IT!!!!
-                if(!out_queue.empty())
+                while(!out_queue.empty())
                 {
                     mavlink_message_t message = out_queue.pop_front();
-                    std::cout << "[]FW-LOG-INFO]: The sended message id " << message.msgid << std::endl;
                     uint8_t buffer_for_write[BUFFER_SIZE];
                     uint32_t length = mavlink_msg_to_send_buffer(buffer_for_write,&message);
                     int bytes_written = _write_port(buffer_for_write,length);
@@ -89,6 +88,11 @@ namespace FW
 						should_writer_thread_run = false;
                         break;
                     }
+                    else
+                    {
+                        std::cout << "[FW-LOG-INFO]: The message  with id " << message.msgid <<
+                        " was sent successfully. " << std::endl;
+                    }
                 }
             }
         } while (should_writer_thread_run);
@@ -96,8 +100,6 @@ namespace FW
 
     int UDPSocket::_write_port(uint8_t *buffer, uint32_t length)
     {
-		std::scoped_lock lock(mut);
-
         if (!IsOpen())
         {
             return 0;
@@ -121,6 +123,15 @@ namespace FW
         return bytes_written;
     }
 
+    /*
+     * //TODO: Fix this possible bug, to do so you need to look at non-blocking sockets.
+     * !!! POSSIBLE BUG WHEN JOINING READER THREAD !!!
+     * Because, the standard autopilots used in community (PX4, Ardupilot) sends automatically streams, this thread
+     * do not wait for a data coming in recvfrom(..) call. So, when the should_reader_thread_run bool set to false, this
+     * thread will eventually joins.
+     *
+     * However, if you are using specific autopilot that do not regularly send messages, this thread WİLL NEVER JOIN!
+     */
     void UDPSocket::ReaderThread()
     {
         do
@@ -189,16 +200,12 @@ namespace FW
                     }
                 }
             }
-            //reader thread should sleep to give time for writer thread (?)
-			std::this_thread::sleep_for(READER_THREAD_INTERVAL);
 
         } while (should_reader_thread_run);
     }
 
     int UDPSocket::_read_port(uint8_t& cp)
     {
-		std::scoped_lock lock(mut);
-
         int result = -1;
         if(buff_ptr < buff_len)
         {
@@ -218,8 +225,7 @@ namespace FW
                     tx_port = ntohs(addr.sin_port);
                     std::cout << "[FW-LOG-DEBUG]: Got first packet, sending to " << target_ipv4 << ":" << rx_port << std::endl;
 					std::cout << "[FW-LOG-DEBUG]: UDP Socket TX Port Set To: " << tx_port << std::endl;
-                }
-				else
+                } else
                 {
                     std::cout << "[FW-LOG-ERROR]: Got packet from " << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port)
                     << " but listening on " << target_ipv4 << std::endl;
@@ -236,7 +242,7 @@ namespace FW
         return result;
 
     }
-    int UDPSocket::close_socket()
+    int UDPSocket::close_socket() const
     {
     #ifdef _WIN32
             return closesocket(udp_socket);

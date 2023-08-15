@@ -82,6 +82,7 @@ namespace FW
                     mavlink_msg_heartbeat_decode(&msg, &heartbeat_msg);
                     system->autopilot_id = static_cast<MAV_AUTOPILOT>(heartbeat_msg.autopilot);
                     system->vehicle_id = static_cast<MAV_TYPE>(heartbeat_msg.type);
+                    system->mav_version = heartbeat_msg.mavlink_version;
                     system_info_promise.set_value(system);
                 }
             }
@@ -89,46 +90,50 @@ namespace FW
         }
     }
 
-    //Mavlink connecting is simply requesting specific message (default SYSTEM_TIME) to measure the rtt for commad protocol and check if two way connection can be established.
+    //Mavlink connecting is simply requesting specific message (default SYSTEM_TIME) to measure the rtt for
+    // command protocol and check if two-way connection can be established.
     bool MessageHandler::Connect(const std::shared_ptr<System>& system)
     {
-
-        mavlink_command_long_t msg_request_command{};
-
-        msg_request_command.command = 512;
-        msg_request_command.param1 = MAVLINK_MSG_ID_SYSTEM_TIME;
+        const uint16_t CMD_ID = 400;
+        mavlink_command_long_t com = { 0 };
+        com.target_system    = system->system_id;
+        com.target_component = system->component_id;;
+        com.command          = CMD_ID;
+        com.param1           = 1.0f; // flag >0.5 => start, <0.5 => stop
+        com.param2           = 21196;
         mavlink_message_t msg_s;
-        mavlink_msg_command_long_encode(system->system_id, system->component_id,&msg_s, &msg_request_command);
+        mavlink_msg_command_long_encode(system->system_id, MAV_COMP_ID_ALL  ,&msg_s, &com);
         network_handler.Send(msg_s);
+        std::cout << "[FW][LOG-DEBUG]: Sent the system time message to measure rtt in connection request. " << std::endl;
         auto start = std::chrono::system_clock::now();
-        if(network_handler.Incoming().wait_for(5s) != std::cv_status::timeout)
+        if(network_handler.IncomingACK().wait_for(10s) != std::cv_status::timeout)
         {
-            if(!network_handler.Incoming().empty())
+            while(!network_handler.IncomingACK().empty())
             {
-                mavlink_message_t msg = network_handler.Incoming().pop_front();
-                if(msg.msgid == MAVLINK_MSG_ID_SYSTEM_TIME)
+                mavlink_message_t msg = network_handler.IncomingACK().pop_front();
+                if(msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK)
                 {
+                    bool result;
                     auto finish = std::chrono::system_clock::now();
                     system->initial_sample_rtt = std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start);
-                    mavlink_system_time_t system_time;
-                    mavlink_msg_system_time_decode(&msg, &system_time);
-                    std::cout << "[FW][LOG-DEBUG]: System is connected. " << std::endl;
-                    std::cout << "[FW][LOG-INFO]: System Timestamp (UNIX epoch Time)(us): " << system_time.time_unix_usec << std::endl;
-                    std::cout << "[FW][LOG-INFO]: System Timestamp (Time Since Boot)(ms): " << system_time.time_boot_ms << std::endl;
-                    if (!network_handler.IncomingACK().empty())
+                    mavlink_command_ack_t cmd_ack;
+                    mavlink_msg_command_ack_decode(&msg, &cmd_ack);
+                    std::cout << "[FW][LOG-INFO]: A command ack was taken. Checking if it is command for system time message request." << std::endl;
+                    std::cout << "[FW][LOG-INFO]: Command Number: " << cmd_ack.command << std::endl;
+                    std::cout << "[FW][LOG-INFO]: Command Result: " << static_cast<uint32_t>(cmd_ack.result) << std::endl;
+                    if(cmd_ack.command == CMD_ID)
                     {
-                        std::cout << "[FW][LOG-TRACE]: The command ack messages are deleted to ensure clarity. "
-                                  << std::endl;
-                        network_handler.IncomingACK().clear();
+                        std::cout << "[FW][LOG-DEBUG]: The command ack matched the command which was sent. " << std::endl;
+                        result = true;
                     }
-                    return true;
+                    else
+                    {
+                        std::cout << "[FW][LOG-DEBUG]: The command ack did not match the command which was sent." << std::endl;
+                        result = false;
+                    }
+                    return result;
                 }
             }
-        }
-        if(!network_handler.IncomingACK().empty())
-        {
-            std::cout << "[FW][LOG-TRACE]: The command ack messages are deleted to ensure clarity. " << std::endl;
-            network_handler.IncomingACK().clear();
         }
         return false;
     }

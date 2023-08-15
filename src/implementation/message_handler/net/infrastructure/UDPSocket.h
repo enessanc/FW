@@ -35,7 +35,7 @@ namespace FW
     private:
         int _write_port(uint8_t *buffer, uint32_t len);
         int _read_port(uint8_t& cp);
-        int close_socket();
+        int close_socket() const;
 
     private:
         //Related to targets

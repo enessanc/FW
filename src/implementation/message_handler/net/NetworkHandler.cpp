@@ -131,15 +131,16 @@ namespace FW
 	   }
 
        generic_socket->Close();
-       if(reader_thread.joinable())
+        if(writer_thread.joinable())
+        {
+            writer_thread.join();
+            std::cout << "[FW-LOG-DEBUG]: Writer thread joined." << std::endl;
+        }
+        if(reader_thread.joinable())
        {
           reader_thread.join();
+          std::cout << "[FW-LOG-DEBUG]: Reader thread joined." << std::endl;
        }
-       if(writer_thread.joinable())
-       {
-          writer_thread.join();
-       }
-
 	   generic_socket = nullptr;
     }
 

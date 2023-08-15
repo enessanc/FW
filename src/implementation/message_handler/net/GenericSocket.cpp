@@ -32,14 +32,17 @@ namespace FW
     {
         if(msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK)
         {
+            std::cout << "[FW][LOG-TRACE]: A command ack came. " << std::endl;
             ack_queue.push_back(msg);
         }
         else
         {
-            //TODO : The coming mssages should be filtered by a subscription protocol.
-            if(msg.msgid == MAVLINK_MSG_ID_SYSTEM_TIME || msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+            //TODO : The coming messages should be filtered by a subscription protocol.
+            if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
             {
                 incoming_queue.push_back(msg);
+                std::cout << "[FW-LOG-INFO]: Incoming message id: " << msg.msgid <<
+                " successfully added to incoming queue in generic socket." << std::endl;
             }
         }
     }
